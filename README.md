@@ -1,6 +1,6 @@
 # compiler-course
 
-This document is a collection of exercises and commented source
+This repository is a collection of exercises and commented source
 code (demos) which together make up a course on «interpreters and
 compilers», written in C++. Each chapter corresponds to a single
 week of study. Every week, you will read the chapter introduction
