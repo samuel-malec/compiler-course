@@ -1,0 +1,134 @@
+# Functions, Closures and Recursion
+
+Functions are the main tool of abstraction in almost every language,
+and implementing them correctly is surprisingly subtle. This chapter
+looks at what a function «value» really is, how calls work, and how
+recursion, mutation and tail calls fit in.
+
+### Functions as Values
+
+In ‹tiny› and most modern languages, functions are «first-class»:
+they can be stored in variables, passed as arguments and returned as
+results. Consider:
+
+    let add = fn (x) fn (y) x + y in
+    let inc = add(1) in
+    inc(41)
+
+The inner function ‹fn (y) x + y› refers to ‹x›, a parameter of the
+«outer» function. By the time ‹inc› is called, the call ‹add(1)› has
+long returned – yet ‹inc› must still know that ‹x = 1›. Hence a
+function value cannot be just the code: it must be a «closure», a
+pair of the code (parameters and body) and the «environment» in
+which the function was created. Calling a closure evaluates the body
+in «that» environment, extended with the parameters bound to the
+arguments – not in the environment of the caller. This is «lexical
+scoping», and it is what makes ‹inc› work.
+
+The alternative, «dynamic scoping», evaluates the body in the
+environment of the «caller». It is easier to implement (no closures
+needed), and it was used by early Lisps and is still used by shell
+languages and Emacs Lisp, but it makes the meaning of a function
+depend on where it is called from (‹p3_dynamic›).
+
+### Calls and the Stack
+
+When a function is called, the arguments are evaluated (in
+«call-by-value», which nearly all languages use) and a new
+environment frame – an «activation record» – is created for the
+parameters. In a language without closures, activation records can
+live on a stack, since a function's variables are never needed after
+it returns. Closures break this: a variable captured by a closure can
+outlive the call that created it. Implementations therefore either
+allocate all frames on the heap (as our interpreters do, using
+‹std::shared_ptr›), or find out which variables are «captured»
+(‹r3_capture›) and only move those to the heap.
+
+### Recursion
+
+How can a function refer to itself? In ‹let f = fn (n) … f(n - 1) …
+in …›, the ‹f› in the body refers to whatever ‹f› was «outside» the
+‹let› – the closure is created before ‹f› is bound. Recursive
+definitions need a special form, usually called ‹letrec›: the
+environment is extended with the names «first», and then the
+closures are created in the extended environment, so that they see
+themselves (and each other – mutual recursion). In an interpreter,
+this means creating a frame with empty slots, building the closures
+with that frame, and then filling in the slots: the environment
+becomes cyclic (‹p1_letrec›).¹
+
+### Mutation and Sharing
+
+If closures can modify captured variables (with ‹set›), then two
+closures which capture the same variable must see each other's
+changes. This works naturally if environments are frames which are
+«shared» (by pointer), not copied. A classic example is a counter:
+
+    let make = fn () let n = 0 in fn () set n = n + 1 in …
+
+Each call of ‹make› creates a new frame with its own ‹n›, and the
+returned closure keeps that frame alive (‹p2_counter›).
+
+### Tail Calls
+
+A call is in «tail position» if it is the last thing a function
+does: in ‹fn (n, acc) if n == 0 then acc else loop(n - 1, acc * n)›,
+the recursive call is a tail call, since its result is directly the
+result of the function. A tail call does not need to keep the
+caller's frame around, so it can «reuse» it – recursion in tail
+position then runs in constant space, just like a loop. Functional
+languages (Scheme, ML, Haskell) guarantee this; in a tree-walking
+interpreter, it requires restructuring ‹eval› as a loop (‹d2_tailcall›,
+‹p4_tail›).
+
+### The Exercises
+
+Unless an exercise says otherwise, programs are S-expressions in the
+following language, whose values are integers and closures:
+
+    expr = integer | name
+         | ( op expr expr )             ; op ∈ + - * / % < <= > >= = !=
+         | (if expr expr expr)          ; non-zero is true
+         | (let name expr expr)
+         | (fn (name …) expr)           ; a function
+         | (expr expr …)                ; a call
+
+A list is a call if it does not start with one of the operators or
+the keywords ‹if›, ‹let› and ‹fn› (or other keywords added by a
+particular exercise).
+
+Demos:
+
+ 1. ‹closures›  – an interpreter with closures and ‹letrec›
+ 2. ‹tailcall›  – an evaluator which runs tail calls in constant space
+
+Elementary exercises:
+
+ 1. ‹apply›     – closures and calls
+ 2. ‹curry›     – translate functions with many parameters to one
+ 3. ‹free›      – free variables of functions
+
+Preparatory exercises:
+
+ 1. ‹letrec›    – recursive and mutually recursive functions
+ 2. ‹counter›   – mutable captured variables
+ 3. ‹dynamic›   – lexical vs. dynamic scoping
+ 4. ‹tail›      – proper tail calls
+ 5. ‹beta›      – normalization of λ-terms
+ 6. ‹trace›     – error messages with a call stack
+
+Regular exercises:
+
+ 1. ‹lisp›      – a small Lisp with lists and ‹define›
+ 2. ‹convert›   – closure conversion
+ 3. ‹capture›   – which variables are captured by closures
+ 4. ‹tailpos›   – which calls are tail calls
+
+¹ The cycle is a problem for memory management: reference counting
+  (‹std::shared_ptr›) can never free it, and ‹valgrind› would report
+  a leak. The simplest fix is an «arena»: the interpreter owns all
+  frames and closures (e.g. in a ‹std::vector< std::unique_ptr< … > >›),
+  and they refer to each other by plain pointers; everything is freed
+  at once when the interpreter is destroyed. The demos and reference
+  solutions in this chapter do exactly that. A real interpreter needs
+  a garbage collector, which is the topic of Chapter 12.

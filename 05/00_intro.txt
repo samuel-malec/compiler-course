@@ -1,0 +1,124 @@
+# Statements, Scopes and Environments
+
+Block 2 is about the «semantics» of programming languages – what
+programs mean, and how an implementation can find out things about
+them without running them. We start with the features that make a
+language «imperative»: statements, mutable variables, and control
+flow.
+
+### Expressions and Statements
+
+An «expression» is evaluated for its value; a «statement» is executed
+for its «effect» – it changes a variable, prints something, or
+transfers control elsewhere. Most languages have both, and the
+distinction is mostly a matter of syntax: in C, ‹x = 1› is an
+expression (with the value 1), in Python it is a statement. In an
+interpreter, the difference shows up in the return type: ‹eval›
+returns a value, ‹exec› returns nothing (or a «completion», see
+below).
+
+Once variables can change, the evaluator needs to keep track of their
+«current» values. Conceptually, there are two mappings:
+
+ • the «environment» maps names to «locations» (‘which variable does
+   the name ‹x› refer to here?’) – it follows the nesting of the
+   program text, and it is fixed when the program is written,
+ • the «store» maps locations to «values» (‘what is in that variable
+   right now?’) – it changes as the program runs.
+
+Simple interpreters merge the two into a chain of mutable frames,
+each mapping names directly to values (‹04/e2_env›). Separating them
+is needed as soon as two names can refer to the same location (C++
+references, ‹p5_alias›), and it is what compiled code does: the
+compiler resolves names to locations (stack slots, registers), and at
+run time only the store exists.
+
+### Blocks and Scope
+
+A «block» ‹{ … }› introduces a new «scope»: variables declared in it
+are visible from the declaration to the end of the block, and they
+«shadow» variables of the same name from enclosing blocks. This is
+«lexical» (or «static») scoping: which declaration a name refers to
+can be determined from the program text alone, by looking at the
+enclosing blocks. That makes it possible to «resolve» all names
+before the program runs (‹d2_resolve›, ‹p2_resolve›): each use of a
+variable is annotated with the number of scopes to walk up and the
+position of the variable in that scope. The interpreter then never
+has to search for a name, and errors like using an undeclared
+variable are reported before anything runs – even in code that would
+never be executed.
+
+### Control Flow
+
+Structured control flow – ‹if›, ‹while› – is easy for a tree-walking
+interpreter: it is just C++ control flow. «Non-local» exits are more
+interesting: ‹break› and ‹continue› leave one or more enclosing
+statements at once, ‹return› leaves the whole function, and
+exceptions (‹p6_try›) can unwind arbitrarily far. There are two
+common implementation strategies:
+
+ 1. each ‹exec› returns a «completion» – ‘normal’, ‘break’,
+    ‘continue’, … – and each statement which contains other
+    statements checks the completion of its children and decides
+    whether to stop early (‹d1_stmt›),
+ 2. a non-local exit throws a C++ exception, which is caught by the
+    statement where execution should continue (e.g. the loop).
+
+The first one is more explicit and usually faster; the second keeps
+the code shorter. A compiler (block 3) does neither: it turns all
+control flow into jumps (‹r4_lower›).
+
+### Static Analysis
+
+With statements comes a whole family of questions that can be
+answered by inspecting the program: Is every variable assigned before
+it is read (‹p3_definite›)? Is a variable declared but never used? Is
+a statement unreachable? Such «static analyses» must be
+«conservative»: a program can only be analysed approximately (in
+general, the questions are undecidable), so the analysis must err on
+the safe side – e.g. treat a variable as ‘maybe not assigned’ unless
+it is assigned on «every» path.
+
+### The Exercises
+
+As in Chapter 4, the exercises use S-expressions for programs, so
+that you can concentrate on semantics. Unless an exercise says
+otherwise, they share the following core language, where all values
+are integers and comparisons give 1 or 0:
+
+    expr = integer | name
+         | ( op expr expr )        ; op ∈ + - * / % < <= > >= = !=
+    stmt = (block stmt …)          ; a new scope
+         | (var name expr)         ; declare a variable
+         | (set name expr)         ; assign to an existing variable
+         | (print expr)            ; append the value to the output
+         | (if expr stmt [stmt])   ; non-zero is true
+         | (while expr stmt)
+
+Demos:
+
+ 1. ‹stmt›     – an interpreter for statements in C-like syntax,
+                 with ‹break› and ‹continue› as completions
+ 2. ‹resolve›  – resolving names to slots before running the program
+
+Elementary exercises:
+
+ 1. ‹print›    – execute straight-line programs with blocks
+ 2. ‹scope›    – check that every use of a variable is declared
+ 3. ‹shadow›   – find declarations which shadow another variable
+
+Preparatory exercises:
+
+ 1. ‹loops›    – ‹while›, ‹break› and ‹continue› (with labels)
+ 2. ‹resolve›  – annotate variable uses with scope depth and slot
+ 3. ‹definite› – definite assignment analysis
+ 4. ‹switch›   – ‹switch› with fall-through
+ 5. ‹alias›    – environment vs. store: reference variables
+ 6. ‹try›      – exceptions: ‹throw›, ‹try›/‹catch› and ‹finally›
+
+Regular exercises:
+
+ 1. ‹parse›    – parse C-like statements into S-expressions
+ 2. ‹profile›  – count how many times each statement executes
+ 3. ‹symtab›   – an efficient scoped symbol table
+ 4. ‹lower›    – compile structured control flow into jumps

@@ -1,0 +1,126 @@
+# Static Types and Type Checking
+
+All our interpreters so far were «dynamically typed»: ‹1 + true› is
+an error, but it is only detected when (and if) that addition
+actually runs. A «static type system» detects such errors «before»
+the program runs, by assigning a «type» to every expression and
+checking that the types fit together. A «type checker» is a static
+analysis, like the ones in Chapter 5 – but one that is usually
+built into the definition of the language itself.
+
+### Types and Judgements
+
+A type describes a set of values: ‹int› the integers, ‹bool› the two
+booleans, ‹(-> int bool)› the functions which take an integer and
+return a boolean. The type checker works with «typing judgements» of
+the form ⟦Γ ⊢ e : τ⟧ – ‘in the «typing context» ⟦Γ⟧, the expression ⟦e⟧
+has type ⟦τ⟧’. The context plays the role that the environment plays
+in an interpreter, except that it maps variables to «types» instead of
+values. The rules look much like the big-step rules of Chapter 4:
+
+                       Γ(x) = τ            Γ ⊢ e₁ : int    Γ ⊢ e₂ : int
+    ────────────     ────────────       ──────────────────────────────
+    Γ ⊢ n : int        Γ ⊢ x : τ            Γ ⊢ (+ e₁ e₂) : int
+
+    Γ ⊢ c : bool    Γ ⊢ e₁ : τ    Γ ⊢ e₂ : τ         Γ, x : σ ⊢ e : τ
+    ─────────────────────────────────────────   ──────────────────────────────
+           Γ ⊢ (if c e₁ e₂) : τ                 Γ ⊢ (fn ((x σ)) e) : (-> σ τ)
+
+    Γ ⊢ f : (-> σ τ)    Γ ⊢ a : σ
+    ──────────────────────────────
+           Γ ⊢ (f a) : τ
+
+Again, each rule becomes a case of a recursive function, ‹check( e, Γ
+)›, which returns the type of ‹e› or reports an error. There is one
+crucial difference from evaluation: the checker looks at «both»
+branches of an ‹if›, and it checks the body of a function «once»,
+symbolically, for all possible arguments – using the declared type of
+the parameter instead of an actual value. That is also why function
+parameters need «annotations» (in this chapter – Chapter 8 shows how
+to infer them).
+
+### Soundness
+
+What does the type checker buy us? The answer is the «soundness»
+theorem (‘well-typed programs cannot go wrong’, Robin Milner): if a
+program has type ⟦τ⟧, then running it will not get stuck on a type
+error, and if it produces a value, the value has type ⟦τ⟧. It is
+usually proved in two parts: «progress» (a well-typed expression is
+either a value or can take a step) and «preservation» (a step keeps
+the type). Errors which the type system does not track – division by
+zero, array bounds – can of course still happen.
+
+A type system is necessarily «conservative»: ‹(if #t 1 #f)› never
+produces a boolean, yet it is rejected, because the checker does not
+evaluate the condition. Designing a type system is a balancing act
+between rejecting as few good programs as possible and keeping the
+rules simple enough to understand (and implement).
+
+### Beyond the Basics
+
+The exercises in this chapter explore several extensions:
+
+ • «Records and subtyping» (‹d2_subtype›, ‹p3_subtype›): a record
+   with fields ‹x› and ‹y› can be used where only ‹x› is needed. A type
+   ⟦σ⟧ is a «subtype» of ⟦τ⟧ (⟦σ <: τ⟧) if a value of type ⟦σ⟧ can be
+   used wherever a ⟦τ⟧ is expected. For functions, the rule is
+   surprising at first: ⟦(-> σ₁ τ₁) <: (-> σ₂ τ₂)⟧ if ⟦σ₂ <: σ₁⟧ (the
+   parameter types go the «other» way – «contravariance») and ⟦τ₁ <:
+   τ₂⟧ («covariance»). Mutable references must be «invariant»
+   (‹r3_refs›).
+ • «Sum types» (‹p5_variants›): a value which is one of several
+   alternatives, each with a tag, examined by ‹match›; the checker can
+   verify that ‹match› handles every case («exhaustiveness»).
+ • «Overloading» (‹p6_overload›): several functions with the same name
+   and different parameter types; the checker picks the right one.
+ • «Parametric polymorphism» (‹r1_generics›): functions which work for
+   «any» type, like the identity ‹(forall (a) (-> a a))›.
+
+### The Exercises
+
+Types are written as S-expressions: ‹int›, ‹bool›, and ‹(-> σ₁ … σₙ
+τ)› for a function with parameters of types ‹σᵢ› and result type ‹τ›
+(‹n› can be zero). Unless an exercise says otherwise, programs are
+written in this «typed» language:
+
+    expr = integer | #t | #f | name
+         | (op expr expr)               ; see below
+         | (and expr expr) | (or expr expr) | (not expr)
+         | (if expr expr expr)
+         | (let name expr expr)
+         | (fn ((name type) …) expr)    ; annotated parameters
+         | (expr expr …)                ; a call
+
+The operators ‹+ - * /› take two ‹int›s and give an ‹int›; ‹< <= >
+>=› take two ‹int›s and give a ‹bool›; ‹=› and ‹!=› take two operands
+of the «same» type, which must be ‹int› or ‹bool›, and give a ‹bool›.
+‹and›, ‹or› and ‹not› work on ‹bool›. The condition of ‹if› must be a
+‹bool›, and both branches must have the same type, which is then the
+type of the ‹if›.
+
+Demos:
+
+ 1. ‹check›     – a type checker for the typed language
+ 2. ‹subtype›   – records, subtyping and joins
+
+Elementary exercises:
+
+ 1. ‹show›      – print types in the usual infix notation
+ 2. ‹arith›     – type checking without functions
+ 3. ‹alias›     – type equality with type aliases
+
+Preparatory exercises:
+
+ 1. ‹lambda›    – type checking with functions
+ 2. ‹errors›    – type errors with positions and good messages
+ 3. ‹subtype›   – the subtyping relation and joins of types
+ 4. ‹returns›   – typed functions with statements and ‹return›
+ 5. ‹variants›  – sum types, ‹match› and exhaustiveness
+ 6. ‹overload›  – overload resolution with implicit conversions
+
+Regular exercises:
+
+ 1. ‹generics›  – explicit parametric polymorphism (System F)
+ 2. ‹recursive› – equality of recursive types
+ 3. ‹refs›      – mutable references and invariance
+ 4. ‹classes›   – checking a class hierarchy (nominal subtyping)

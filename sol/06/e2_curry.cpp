@@ -1,0 +1,175 @@
+#include <cassert>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <vector>
+
+/* The programs in this exercise are written as S-expressions, so
+ * that we can concentrate on evaluation instead of parsing. The
+ * function ‹read› (provided) turns the text into a tree of ‹sexp›
+ * nodes: each node is either an «atom» – a number, a name, a string
+ * literal «including» its quotes (no escapes), or anything else
+ * without spaces and parentheses – or a «list» of nodes. ‹offset›
+ * is the position of the first character of the node in the input.
+ * The function ‹write› does the opposite of ‹read›. If the input is
+ * malformed, ‹read› throws ‹std::invalid_argument›. */
+
+struct sexp
+{
+    std::string atom;           /* non-empty for atoms */
+    std::vector< sexp > items;  /* elements of a list */
+    std::size_t offset = 0;
+
+    bool is_atom() const { return !atom.empty(); }
+    bool is_list() const { return atom.empty(); }
+};
+
+void skip_space( std::string_view s, std::size_t &pos )
+{
+    while ( pos < s.size() && ( s[ pos ] == ' ' || s[ pos ] == '\n' ) )
+        ++ pos;
+}
+
+sexp read_at( std::string_view s, std::size_t &pos )
+{
+    skip_space( s, pos );
+    sexp out{ "", {}, pos };
+
+    if ( pos >= s.size() || s[ pos ] == ')' )
+        throw std::invalid_argument( "unexpected end of list or input" );
+
+    if ( s[ pos ] == '(' )
+    {
+        for ( ++ pos; skip_space( s, pos ), pos >= s.size() || s[ pos ] != ')'; )
+            out.items.push_back( read_at( s, pos ) );
+        ++ pos;
+        return out;
+    }
+
+    std::size_t start = pos;
+
+    if ( s[ pos ] == '"' )
+    {
+        pos = s.find( '"', pos + 1 );
+        if ( pos == s.npos )
+            throw std::invalid_argument( "unterminated string" );
+        ++ pos;
+    }
+    else
+        while ( pos < s.size() && std::string_view( " \n()" ).find( s[ pos ] ) == s.npos )
+            ++ pos;
+
+    out.atom = s.substr( start, pos - start );
+    return out;
+}
+
+sexp read( std::string_view s )
+{
+    std::size_t pos = 0;
+    sexp e = read_at( s, pos );
+    skip_space( s, pos );
+    if ( pos != s.size() )
+        throw std::invalid_argument( "trailing input" );
+    return e;
+}
+
+std::string write( const sexp &e )
+{
+    if ( e.is_atom() )
+        return e.atom;
+
+    std::string out;
+    for ( const auto &i : e.items )
+        out += ( out.empty() ? "" : " " ) + write( i );
+    return "(" + out + ")";
+}
+
+/* Functions with several parameters can be expressed using functions
+ * with just one: ‹(fn (x y) b)› behaves like ‹(fn (x) (fn (y) b))›,
+ * if every call ‹(f a b)› is written as ‹((f a) b)›. This is called
+ * «currying». Write a function ‹curry› which performs the translation
+ * on a program in the language from the introduction:
+ *
+ *  • ‹(fn (x₁ x₂ … xₙ) b)› with ‹n ≥ 2› becomes nested one-parameter
+ *    functions, ‹(fn (x₁) (fn (x₂) … (fn (xₙ) b)…))›,
+ *  • a call ‹(f a₁ a₂ … aₙ)› with ‹n ≥ 2› becomes ‹(…((f a₁) a₂) … aₙ)›,
+ *  • functions with one parameter and calls with one argument are
+ *    unchanged; functions with zero parameters get a single dummy
+ *    parameter ‹_›, and calls with zero arguments pass ‹0›,
+ *  • everything is translated recursively (including the function
+ *    position of calls, operands, and bodies).
+ *
+ * The result is written with ‹write›. You can assume that the input is
+ * well formed. */
+
+// std::string curry( std::string_view program );
+
+sexp atom( std::string a ) { return sexp{ a, {}, 0 }; }
+sexp list( std::vector< sexp > xs ) { return sexp{ "", std::move( xs ), 0 }; }
+
+bool is_form( const std::string &h )
+{
+    static const std::string_view forms[] =
+        { "+", "-", "*", "/", "%", "<", "<=", ">", ">=", "=", "!=", "if", "let" };
+    for ( auto f : forms ) if ( h == f ) return true;
+    return false;
+}
+
+sexp curry( const sexp &e )
+{
+    if ( e.is_atom() )
+        return e;
+
+    const auto &it = e.items;
+    const std::string &head = it[ 0 ].atom;
+
+    if ( head == "fn" )
+    {
+        sexp body = curry( it[ 2 ] );
+        auto params = it[ 1 ].items;
+        if ( params.empty() )
+            params.push_back( atom( "_" ) );
+        for ( auto p = params.rbegin(); p != params.rend(); ++ p )
+            body = list( { atom( "fn" ), list( { *p } ), body } );
+        return body;
+    }
+
+    if ( head == "let" )
+        return list( { it[ 0 ], it[ 1 ], curry( it[ 2 ] ), curry( it[ 3 ] ) } );
+
+    if ( it[ 0 ].is_atom() && is_form( head ) )
+    {
+        sexp out = e;
+        for ( std::size_t i = 1; i < out.items.size(); ++ i )
+            out.items[ i ] = curry( it[ i ] );
+        return out;
+    }
+
+    sexp f = curry( it[ 0 ] );
+    if ( it.size() == 1 )
+        return list( { f, atom( "0" ) } );
+    for ( std::size_t i = 1; i < it.size(); ++ i )
+        f = list( { f, curry( it[ i ] ) } );
+    return f;
+}
+
+std::string curry( std::string_view program )
+{
+    return write( curry( read( program ) ) );
+}
+
+int main()
+{
+    assert( curry( "x" ) == "x" );
+    assert( curry( "(fn (x) x)" ) == "(fn (x) x)" );
+    assert( curry( "(fn (x y) (+ x y))" ) == "(fn (x) (fn (y) (+ x y)))" );
+    assert( curry( "(f a b c)" ) == "(((f a) b) c)" );
+    assert( curry( "(fn () 1)" ) == "(fn (_) 1)" );
+    assert( curry( "(f)" ) == "(f 0)" );
+    assert( curry( "((fn (a b) (g b a)) 1 2)" ) == "(((fn (a) (fn (b) ((g b) a))) 1) 2)" );
+    assert( curry( "(let h (fn (p q) p) (if (h 1 2) (h 3 4) 0))" ) ==
+            "(let h (fn (p) (fn (q) p)) (if ((h 1) 2) ((h 3) 4) 0))" );
+
+    return 0;
+}

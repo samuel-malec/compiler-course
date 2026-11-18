@@ -1,0 +1,128 @@
+# Type Inference
+
+The type checkers in Chapter 7 needed the programmer to write the
+type of every function parameter. Languages of the ML family
+(Standard ML, OCaml, F#, Haskell) need none: they «infer» all the
+types, and they always find the «most general» one. The algorithm
+behind this – usually called «Hindley–Milner» type inference, after
+the two people who discovered it independently – is one of the most
+beautiful in computer science, and this chapter is devoted to it.
+
+### Type Variables and Constraints
+
+Consider ‹(fn (x) (+ x 1))›. We don't know the type of ‹x›, so we
+give it a «type variable», say ‹'a›. The body adds ‹x› to ‹1›, so it
+must be that ‹'a = int›; the result is ‹int›, so the function has type
+‹(-> int int)›. Inference is just that, done systematically: walk the
+expression, give every unknown a fresh type variable, and collect
+«equations» between types whenever a typing rule requires two types to
+be equal – the operand of ‹+› must be ‹int›, the callee of a call must
+be a function whose parameter types are the argument types, the two
+branches of ‹if› must agree.
+
+Some expressions do not determine all the types: in ‹(fn (x) x)›, the
+only thing we learn is that the result type equals the parameter
+type, so the type is ‹(-> 'a 'a)› – and that is fine: it means the
+function works for «any» ‹'a›.
+
+### Unification
+
+The equations are solved by «unification»: finding a «substitution»
+(a mapping from type variables to types) which makes both sides of
+every equation equal. Unifying two types works structurally:
+
+ • two equal atoms (‹int› and ‹int›) unify with no substitution,
+ • a type variable ‹'a› unifies with any type ‹τ› by the substitution
+   ‹'a ↦ τ› – «unless» ‹'a› occurs inside ‹τ› (the «occurs check»):
+   ‹'a = (-> 'a int)› has no finite solution,
+ • two function types unify if they have the same number of
+   parameters, and the parameters and results unify (applying the
+   substitution from each step to the rest),
+ • anything else (‹int› with ‹bool›, ‹int› with a function) fails –
+   that is a type error.
+
+Unification always finds the «most general unifier» (mgu), if there
+is any: every other unifier is the mgu followed by some further
+substitution. This is why the inferred type is the «principal» one:
+the most general type the expression can have (‹d1_unify›).
+
+### Let-Polymorphism
+
+With only the above, ‹(let id (fn (x) x) (if (id #t) (id 1) 0))› is
+rejected: ‹id› has type ‹(-> 'a 'a)›, the first use unifies ‹'a› with
+‹bool›, and the second then fails on ‹int›. The fix is to
+«generalize» the type of a ‹let›-bound variable: after inferring the
+type of the bound expression, the type variables which do not appear
+in the context are «quantified», giving a «type scheme» ‹∀'a. (-> 'a
+'a)›. Every use of the variable «instantiates» the scheme with fresh
+type variables, so each use can pick its own ‹'a›.
+
+Only ‹let› generalizes; function parameters stay «monomorphic» (a
+parameter can be used at only one type in the body). This restriction
+– «let-polymorphism» – is exactly what keeps inference decidable and
+the types principal. The algorithm which does all of this in one
+recursive pass is called «Algorithm W» (‹d2_infer›).
+
+### Limits
+
+Two more things are worth knowing. Recursive definitions are
+inferred monomorphically within their own definition, and generalized
+afterwards (‹p3_letrec›). And generalization is unsound in the
+presence of mutable references, unless it is restricted to
+expressions which are «syntactic values» – the «value restriction»
+of ML (‹p6_refs›).
+
+### The Exercises
+
+Programs are written in the «untyped» language of Chapter 6 (with
+‹#t› and ‹#f› and the operators of Chapter 7):
+
+    expr = integer | #t | #f | name
+         | (op expr expr) | (and expr expr) | (or expr expr) | (not expr)
+         | (if expr expr expr)
+         | (let name expr expr)
+         | (fn (name …) expr)
+         | (expr expr …)
+
+Types are written as in Chapter 7, with «type variables» written as
+atoms starting with an apostrophe: ‹'a›, ‹'b›, …. Since the names of
+type variables are arbitrary, a type in a result is always written in
+«normal form»: its variables are renamed to ‹'a›, ‹'b›, ‹'c›, … in the
+order of their first appearance in the written type (so the identity
+has type ‹(-> 'a 'a)›, never ‹(-> 'x 'x)›).
+
+As before, ‹=› and ‹!=› compare two values of the same type – but
+inference can't always know which type that is, so in this chapter we
+allow them on any type except functions: an operand whose type is
+still a variable is fine.
+
+This chapter ends block 2; its demo ‹d3_tiny› is the review: an
+interpreter for a small ML-like language with type inference.
+
+Demos:
+
+ 1. ‹unify›     – substitutions and unification
+ 2. ‹infer›     – Algorithm W with let-polymorphism
+ 3. ‹tiny›      – a typed functional ‹tiny›: parser, inference, evaluator
+
+Elementary exercises:
+
+ 1. ‹subst›     – apply a substitution, the occurs check
+ 2. ‹unify›     – the most general unifier of two types
+ 3. ‹generalize› – type schemes
+
+Preparatory exercises:
+
+ 1. ‹mono›      – inference without let-polymorphism
+ 2. ‹poly›      – Algorithm W
+ 3. ‹letrec›    – recursive and mutually recursive definitions
+ 4. ‹lists›     – polymorphic lists and pairs
+ 5. ‹errors›    – type errors with positions
+ 6. ‹refs›      – references and the value restriction
+
+Regular exercises:
+
+ 1. ‹elaborate› – annotate a program with the inferred types
+ 2. ‹unionfind› – fast unification with union-find
+ 3. ‹toplevel›  – inference for a whole program, in dependency order
+ 4. ‹sharing›   – exponentially large types, represented compactly
