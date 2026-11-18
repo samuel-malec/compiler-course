@@ -1,0 +1,107 @@
+# Compiling Control Flow and Calls
+
+Chapter 9 compiled expressions. Real programs also have statements,
+loops, functions, closures and exceptions. This chapter shows how
+each of them is mapped onto a virtual machine – the same mapping that
+compilers to real hardware use, minus the details of the instruction
+set.
+
+### Control Flow and Backpatching
+
+Structured control flow becomes «jumps». A ‹while› loop
+
+    while ( c ) body
+
+compiles to
+
+    top:  <c>
+          jz end
+          <body>
+          jump top
+    end:
+
+and ‹break› and ‹continue› are jumps to ‹end› and ‹top›. The problem
+is that ‹end› is not known when ‹jz end› (or a ‹break› inside the
+body) is emitted. A one-pass compiler emits such «forward» jumps with
+a placeholder target, keeps a list of them, and «backpatches» all of
+them once the target is reached (‹d1_backpatch›). (The alternative,
+used by the assembler in ‹09/r1_assembler›, is symbolic labels and a
+second pass.)
+
+### Calls, Frames and the Stack
+
+A function call must: evaluate the arguments, remember where to
+continue after the call (the «return address»), create storage for
+the callee's parameters and local variables, run the callee, and
+finally come back with the result. All of this lives in an
+«activation record» or «frame». Since calls nest strictly (the last
+function called is the first to return), frames form a «stack» – the
+call stack. Our VM (‹d2_calls›) keeps frames as C++ objects with
+their own slots and operand stack; a hardware machine has a single
+stack in memory, with a «frame pointer» register pointing to the
+current frame, and a «calling convention» which says which registers
+or stack positions hold the arguments, the return address and the
+result.
+
+Recursion needs no special treatment: each activation gets its own
+frame. A call in «tail position» (Chapter 6) does not need to keep the
+caller's frame: ‹tailcall› replaces it, and tail-recursive loops then
+run in constant stack space (‹p3_tailcalls›).
+
+### Closures
+
+A function which refers to variables of an enclosing function needs
+those variables at run time, after the enclosing call has possibly
+returned. The standard technique is «closure conversion» (‹06/r2_convert›):
+a function value is a «closure» – a pointer to code plus the values
+of its free variables – created by the ‹closure› instruction; the body
+reads captured values with ‹env i›. If captured variables can be
+«assigned», copying their values is wrong (the copies would diverge),
+so such variables are first put into «boxes» – heap cells shared by
+everyone who captures them («assignment conversion», ‹r3_boxes›). Lua
+uses a refinement called «upvalues», which keeps the variable on the
+stack until the enclosing function returns.
+
+### Exceptions and Debug Information
+
+Exceptions are implemented without any cost for the normal path: the
+compiler emits, for each ‹try› block, an entry in a «handler table» (an
+instruction range and the address of the handler). When an exception
+is thrown, the VM searches the tables of the active frames from the
+innermost outwards, discarding frames as it goes («unwinding»). The
+JVM, the CLR and C++ (‘zero-cost exceptions’) all work like that
+(‹p4_exceptions›). Similarly, a «line table» maps instructions back
+to source lines, so that errors can be reported with a stack trace
+(‹p6_lines›).
+
+### This Chapter
+
+The VM is given in ‹d2_calls› and as a prelude to the exercises.
+
+Demos:
+
+ 1. ‹backpatch› – statements with loops, ‹break› and ‹continue›
+ 2. ‹calls›     – the VM with frames; compiling recursive functions
+ 3. ‹closures›  – compiling first-class functions to closures
+
+Elementary exercises:
+
+ 1. ‹values›    – ‹if›, ‹and› and ‹or› as expressions with values
+ 2. ‹call›      – calling top-level functions
+ 3. ‹return›    – functions with statement bodies and ‹return›
+
+Preparatory exercises:
+
+ 1. ‹loops›     – statements, loops and backpatching
+ 2. ‹functions› – a first-order language with statements
+ 3. ‹tailcalls› – compiling tail calls
+ 4. ‹exceptions› – ‹try› and ‹throw› with handler tables
+ 5. ‹lambda›    – closure conversion for the language of Chapter 6
+ 6. ‹lines›     – line tables and stack traces
+
+Regular exercises:
+
+ 1. ‹linker›    – separate compilation and linking
+ 2. ‹inline›    – inlining small functions
+ 3. ‹boxes›     – mutable captured variables (assignment conversion)
+ 4. ‹debugger›  – a stepping debugger for the VM

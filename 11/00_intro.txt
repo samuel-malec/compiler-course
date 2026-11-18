@@ -1,0 +1,119 @@
+# Intermediate Representation and Analyses
+
+The compilers of Chapters 9 and 10 went straight from the syntax tree
+to bytecode. Optimizing compilers (gcc, clang/LLVM, the JVM's JITs,
+V8) put an «intermediate representation» (IR) in between – a
+language which is low-level enough to expose every computation and
+every jump, but still machine-independent and convenient to analyse
+and transform. Most of the compiler's work, and almost all of its
+optimizations, happen on the IR.
+
+### Three-Address Code
+
+Our IR is «three-address code» (TAC): every instruction performs at
+most one operation, on at most two operands, and stores the result in
+a named variable:
+
+    t1 = b * c
+    t2 = a + t1
+    if t2 goto L1
+
+Nested expressions are flattened into sequences of such instructions,
+with «temporaries» for the intermediate results (‹e2_lower›), and all
+control flow is explicit jumps between labels. The precise syntax is
+described in the prelude (‹d1_cfg›).
+
+### Basic Blocks and the Control Flow Graph
+
+A «basic block» is a maximal sequence of instructions which is
+always executed in its entirety, from the first instruction to the
+last: control enters only at the top (labels start new blocks) and
+leaves only at the bottom (jumps end blocks). The «control flow
+graph» (CFG) has the blocks as nodes and an edge from each block to
+every block which can execute right after it. Within a block,
+reasoning is easy (straight-line code); the CFG tells how the blocks
+fit together.
+
+### Data-Flow Analysis
+
+Many questions about a program have the form ‘what is true at this
+point, on all (or some) paths leading here?’:
+
+ • «reaching definitions» – which assignments may have produced the
+   current value of a variable,
+ • «liveness» – which variables may still be read before they are
+   overwritten (a «backward» question: it looks at the paths leading
+   «from» here),
+ • «constant propagation» – which variables certainly hold a known
+   constant,
+ • «available expressions» – which computations have already been done
+   on every path.
+
+All of them are solved by the same scheme, «data-flow analysis». Each
+block has a value at its entry and its exit (a set of variables, a map
+from variables to constants, …), a «transfer function» describes how a
+block changes the value, and the values at the joins of the CFG are
+combined by a «meet» operation (union for ‘may’ questions,
+intersection for ‘must’ questions). Starting from an initial guess,
+the equations are iterated until nothing changes – a «fixpoint». The
+values form a «lattice» of finite height and the transfer functions
+are monotone, so this terminates; a «worklist» (re-visit only blocks
+whose inputs changed) makes it fast (‹d2_dataflow›).
+
+### Dominators and SSA
+
+Block ‹A› «dominates» block ‹B› if every path from the entry to ‹B› goes
+through ‹A›. Dominators identify loops (a back edge goes to a
+dominator), and they are the key to «static single assignment» form
+(SSA): an IR in which every variable is assigned exactly once. Where
+several definitions of a variable meet, SSA inserts a «φ-function»
+(‹x3 = phi L1:x1 L2:x2›), which picks the value coming from the
+predecessor that was actually executed. In SSA, the definition of
+each use is unique and explicit, which makes many optimizations
+simpler and faster; nearly every modern optimizing compiler uses it.
+SSA is constructed using «dominance frontiers» (‹d3_ssa›), and
+destroyed again before code generation (‹r3_outofssa›).
+
+### Optimization
+
+An optimization is a transformation which keeps the observable
+behaviour of the program (here: what it prints) while making it
+faster or smaller: constant folding and propagation (‹p2_constprop›,
+‹r1_sccp›), dead code elimination (‹p3_dce›), common subexpression
+elimination (‹p5_lvn›), loop-invariant code motion (‹r4_licm›). The
+final step towards machine code, «register allocation», maps the
+unlimited variables of the IR to a fixed set of registers
+(‹r2_regalloc›).
+
+### This Chapter
+
+The TAC parser and interpreter (‹//@TAC›) and the CFG builder are
+given in the demos and as preludes.
+
+Demos:
+
+ 1. ‹cfg›       – the TAC prelude, basic blocks and the CFG
+ 2. ‹dataflow›  – a generic data-flow solver; reaching definitions
+ 3. ‹ssa›       – dominators, dominance frontiers and SSA construction
+
+Elementary exercises:
+
+ 1. ‹blocks›    – split a program into basic blocks
+ 2. ‹lower›     – lower expressions into TAC with temporaries
+ 3. ‹reach›     – remove unreachable blocks
+
+Preparatory exercises:
+
+ 1. ‹liveness›  – live variables at the entry and exit of each block
+ 2. ‹constprop› – constant propagation and folding
+ 3. ‹dce›       – dead code elimination
+ 4. ‹dominators› – immediate dominators
+ 5. ‹lvn›       – local value numbering
+ 6. ‹loops›     – natural loops
+
+Regular exercises:
+
+ 1. ‹sccp›      – sparse conditional constant propagation on SSA
+ 2. ‹regalloc›  – register allocation by graph colouring
+ 3. ‹outofssa›  – translating out of SSA (the lost copy and swap problems)
+ 4. ‹licm›      – loop-invariant code motion

@@ -1,0 +1,26 @@
+# S.3 Assignment Set 3
+
+The third assignment set covers block 3: bytecode compilation and
+virtual machines, intermediate representations and optimization, and
+memory management. As in the previous sets, each assignment combines
+several topics, and the tests in the files are only sanity tests.
+Please read ‹00/a3_sets.txt› before you start.
+
+ 1. ‹a_compiler›  – a complete compiler from a small C-like language
+                    (functions, loops, exceptions) to the VM of
+                    Chapter 10, with tail calls and line tables
+ 2. ‹b_optimizer› – an optimizer for the three-address code of
+                    Chapter 11: SSA, conditional constant propagation,
+                    dead code elimination and translation out of SSA
+ 3. ‹c_backend›   – a code generator from three-address code to a
+                    register machine, with liveness analysis, register
+                    allocation and spilling
+ 4. ‹d_gc›        – a generational garbage collector: a bump-allocated
+                    nursery, a copying old generation, a write barrier
+                    and a remembered set
+
+The assignments are independent of each other. ‹b_optimizer› and
+‹c_backend› together form the back end of an optimizing compiler –
+if you do both, try running the output of one through the other. ‹d_gc›
+is the shortest in lines of code, but the hardest to debug: write a
+lot of tests, and make them check the heap after every collection.

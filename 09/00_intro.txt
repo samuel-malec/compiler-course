@@ -1,0 +1,99 @@
+# Stack Machines and Bytecode
+
+Block 3 is about «compilation». So far, our implementations executed
+the syntax tree directly. A compiler instead translates the program
+into a different, lower-level language – machine code, or the
+instructions of a «virtual machine» (VM) – which is then executed.
+This chapter introduces the simplest and most common target for
+language implementations: a «stack machine» executing «bytecode».
+Python, Java, C#, Lua, Ruby (YARV), Erlang and WebAssembly all work
+this way.
+
+### Why Compile?
+
+A tree-walking interpreter spends much of its time on things which
+do not depend on the input data at all: following pointers between
+nodes, dispatching on the kind of node, looking variables up by name.
+A compiler does all of that «once», ahead of time. What remains is a
+flat sequence of simple instructions, which the VM executes in a tight
+loop: fetch the next instruction, ‘decode’ it (a ‹switch› on its
+opcode), do it. Variables have been resolved to numbered «slots»,
+control flow has become «jumps» to instruction indices, and the
+instructions are small and cache-friendly. Speed-ups of 3–10× over a
+tree-walker are typical, and a bytecode program is also easy to store
+(e.g. Python's ‹.pyc› files) or send over a network (Java class files,
+WebAssembly modules).
+
+### The Stack Machine
+
+A stack machine has no named registers: instructions take their
+operands from an «operand stack» and push their results back. To
+evaluate ‹(1 + 2) * x›, the VM executes:
+
+    push 1        ; stack: 1
+    push 2        ; stack: 1 2
+    add           ; stack: 3
+    load 0        ; stack: 3 x   (x lives in local slot 0)
+    mul           ; stack: 3x
+
+This is just the postfix (RPN) form of the expression (‹02/p2_rpn›),
+which is why compiling expressions for a stack machine is so easy: a
+post-order walk of the syntax tree, emitting each node after its
+children. The alternative, a «register machine» (Lua, Dalvik), names
+the operands explicitly (‹add r3, r1, r2›): it needs fewer
+instructions, but each is bigger, and the compiler must allocate
+registers (‹p5_registers›).
+
+Our VM (described in detail in ‹d1_vm›, and given to most exercises
+as a prelude) also has local variable «slots», «jumps» for control
+flow and a ‹print› instruction for output. Chapter 10 adds function
+calls.
+
+### Bytecode
+
+‘Bytecode’ originally meant a program encoded as a sequence of bytes:
+each instruction is an opcode byte followed by its operands. Encoding
+choices matter for size and speed: fixed-size operands are fast to
+decode, variable-length ones (‹p3_encode›) are compact; large or
+non-integer constants are usually kept in a separate «constant pool»
+and referred to by index. Before executing untrusted bytecode, a VM
+«verifies» it (‹r2_verify›): every jump goes to a valid instruction,
+the stack never underflows, and every path reaching an instruction
+has the same stack depth.
+
+### This Chapter
+
+Unless stated otherwise, source programs are S-expressions in the
+integer expression language of Chapter 3 extended with comparisons:
+
+    expr = integer | name
+         | (op expr expr)            ; + - * / % < <= = !=
+         | (let name expr expr) ;
+
+Demos:
+
+ 1. ‹vm›        – the stack machine, a hand-written program, encoding
+                  to bytes and back
+ 2. ‹compile›   – compiling expressions with ‹let› to the VM
+
+Elementary exercises:
+
+ 1. ‹dispatch›  – write the dispatch loop of a small stack machine
+ 2. ‹postfix›   – compile arithmetic expressions
+ 3. ‹listing›   – a disassembler for byte-encoded programs
+
+Preparatory exercises:
+
+ 1. ‹locals›    – variables in slots, reusing slots of dead scopes
+ 2. ‹depth›     – the maximal stack depth of a program, statically
+ 3. ‹encode›    – variable-length operands and a constant pool
+ 4. ‹peephole›  – a peephole optimizer
+ 5. ‹registers› – compiling to a register machine (Sethi–Ullman)
+ 6. ‹jumping›   – boolean expressions compiled to jumps
+
+Regular exercises:
+
+ 1. ‹assembler› – a two-pass assembler with labels
+ 2. ‹verify›    – a bytecode verifier
+ 3. ‹decompile› – from bytecode back to expressions
+ 4. ‹forth›     – a tiny Forth: a stack language with definitions

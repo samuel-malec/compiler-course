@@ -1,0 +1,23 @@
+# S.2 Assignment Set 2
+
+The second assignment set covers block 2: statements and scopes,
+functions and closures, type checking and type inference. As in the
+first set, each assignment combines several topics, and the tests in
+the files are only sanity tests. Please read ‹00/a3_sets.txt› before
+you start.
+
+ 1. ‹a_script›   – an interpreter for a small dynamically typed
+                   scripting language with C-like syntax, closures and
+                   arrays (from source text to output)
+ 2. ‹b_typed›    – semantic analysis for a typed imperative language
+                   with structures and arrays: all the checks a
+                   compiler does after parsing, with precise messages
+ 3. ‹c_ml›       – Hindley–Milner inference with algebraic data types
+                   and pattern matching, including exhaustiveness and
+                   redundancy checks
+ 4. ‹d_datalog›  – a Datalog engine: recursive rules, stratified
+                   negation, safety checks and semi-naive evaluation
+
+The assignments are independent of each other. ‹a_script› is the
+largest, but also the most familiar; ‹c_ml› is the most algorithmic –
+leave enough time for the exhaustiveness check.

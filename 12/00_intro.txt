@@ -1,0 +1,116 @@
+# Memory Management
+
+Every language with dynamically created data – closures, boxes,
+lists, objects, strings – must eventually reclaim memory which the
+program no longer uses. In C and C++, the programmer does it
+explicitly (‹free›, ‹delete›, destructors and smart pointers); most
+other languages leave it to the «runtime system». The VM of Chapter 10
+cheated: everything was freed when ‹execute› returned. This chapter
+shows how real language implementations manage the heap, and ends with
+a review of the whole course.
+
+### Allocation
+
+The simplest allocator is a «bump pointer»: memory is one contiguous
+region, and an allocation just moves a pointer forward. It is
+extremely fast, but memory can only be reclaimed all at once (an
+«arena» or «region»). An allocator which reclaims individual objects
+keeps a «free list» of unused blocks (‹e3_freelist›) – and must fight
+«fragmentation»: plenty of free memory in total, but no single block
+large enough. «Buddy» allocators (‹r2_buddy›) and «size classes»
+(used by ‹malloc› implementations) limit fragmentation by restricting
+block sizes.
+
+### Reference Counting
+
+Each object counts the references which point to it; when the count
+drops to zero, the object is freed, and the counts of everything it
+points to are decremented (‹e1_refcount›). This is what
+‹std::shared_ptr›, Swift, Python (primarily) and many file systems
+do. It reclaims memory promptly and incrementally, but every pointer
+assignment costs two count updates, and «cycles» are never freed –
+they need an additional cycle collector (‹p3_cycles›).
+
+### Tracing Collection
+
+A «tracing» garbage collector instead finds the «live» objects: those
+which are reachable from the «roots» (registers, the stack, global
+variables) by following references. Everything else is garbage. The
+classic algorithms are:
+
+ • «mark & sweep» (‹d1_marksweep›, ‹e2_mark›) – mark everything
+   reachable, then sweep the heap and free the unmarked objects;
+   marking can even be done without any additional memory, by
+   temporarily reversing the pointers (‹p1_dsw›),
+ • «copying» (‹d2_copying›, ‹p2_cheney›) – copy the live objects into
+   a fresh region (a «semispace») and abandon the old one; the cost is
+   proportional to the live data only, the heap is compacted for free,
+   and allocation is a bump pointer – but half of the memory is always
+   unused, and objects move (so the collector must be able to find and
+   update «every» pointer),
+ • «mark & compact» (‹p5_compact›) – mark, then slide the live objects
+   together, without the extra semispace.
+
+Most objects die young (the «generational hypothesis»), so
+«generational» collectors (‹p4_generational›) collect a small «nursery»
+often and the rest of the heap rarely; a «write barrier» records
+pointers from old objects to young ones. «Incremental» and
+«concurrent» collectors (‹r1_incremental›) interleave the collection
+with the program to avoid long pauses, using the «tri-colour»
+abstraction and, again, a write barrier. Weak references and
+finalizers (‹p6_weak›) let the program observe the collector.
+
+### What the Collector Needs from the Compiler
+
+A precise collector must know which words are pointers. Either the
+values carry «tags» (as in the flat memory of ‹d2_copying›, where odd
+words are integers), or the compiler emits «stack maps»: for each
+point where a collection can happen, which stack slots hold
+references (‹r3_stackmaps›; the JVM, .NET and LLVM's ‘statepoints’
+work like that). Without such information, a collector can still be
+«conservative» – treat every word which looks like a pointer as one
+(‹r4_conservative›; the Boehm collector, and the stack scanning of
+several JavaScript engines).
+
+### Course Review
+
+The last demo (‹d3_tiny›) puts the pieces of the course together: a
+small list-processing language is parsed (from S-expressions), its
+functions compiled to bytecode for a stack VM with frames, and the
+VM runs with a copying garbage collector which uses the frames as
+roots. If you understand every line of it, you know how a
+language implementation works.
+
+### This Chapter
+
+The object heap (‹//@HEAP›, from ‹d1_marksweep›) and the flat memory
+(‹//@MEM›, from ‹d2_copying›) are given as preludes.
+
+Demos:
+
+ 1. ‹marksweep› – the object heap; a recursive mark & sweep collector
+ 2. ‹copying›   – flat memory with tagged words; a recursive copying
+                  collector
+ 3. ‹tiny›      – review: a compiler and a VM with garbage collection
+
+Elementary exercises:
+
+ 1. ‹refcount›  – reference counting (without recursion)
+ 2. ‹mark›      – mark & sweep with an explicit mark stack
+ 3. ‹freelist›  – a first-fit allocator with coalescing
+
+Preparatory exercises:
+
+ 1. ‹dsw›       – marking by pointer reversal (Deutsch–Schorr–Waite)
+ 2. ‹cheney›    – Cheney's breadth-first copying collector
+ 3. ‹cycles›    – collecting cycles of reference-counted objects
+ 4. ‹generational› – a nursery, promotion and a remembered set
+ 5. ‹compact›   – sliding mark & compact
+ 6. ‹weak›      – weak references and finalization
+
+Regular exercises:
+
+ 1. ‹incremental› – tri-colour incremental marking with a write barrier
+ 2. ‹buddy›     – the buddy allocator
+ 3. ‹stackmaps› – computing stack maps for a precise collector
+ 4. ‹conservative› – conservative marking with interior pointers

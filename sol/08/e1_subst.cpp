@@ -88,7 +88,7 @@ std::string write( const sexp &e )
 
 /* Write two functions on types (in the notation of the introduction):
  *
- *  • ‹apply( s, t )› – apply the substitution ‹s› (a map from type
+ *  • ‹substitute( s, t )› – apply the substitution ‹s› (a map from type
  *    variables to types, given as text) to the type ‹t›: replace every
  *    occurrence of a variable which is a key of ‹s› by the
  *    corresponding type; the replacement is «simultaneous» (the
@@ -98,7 +98,7 @@ std::string write( const sexp &e )
  *
  * You can assume that the inputs are well formed. */
 
-// std::string apply( const std::map< std::string, std::string > &s, std::string_view t );
+// std::string substitute( const std::map< std::string, std::string > &s, std::string_view t );
 // bool occurs( std::string_view v, std::string_view t );
 
 sexp apply( const std::map< std::string, sexp > &s, const sexp &t )
@@ -114,7 +114,7 @@ sexp apply( const std::map< std::string, sexp > &s, const sexp &t )
     return out;
 }
 
-std::string apply( const std::map< std::string, std::string > &s, std::string_view t )
+std::string substitute( const std::map< std::string, std::string > &s, std::string_view t )
 {
     std::map< std::string, sexp > parsed;
     for ( const auto &[ v, ty ] : s )
@@ -141,12 +141,12 @@ int main()
 {
     std::map< std::string, std::string > s{ { "'a", "int" }, { "'b", "(-> 'a bool)" } };
 
-    assert( apply( s, "'a" ) == "int" );
-    assert( apply( s, "'c" ) == "'c" );
-    assert( apply( s, "bool" ) == "bool" );
-    assert( apply( s, "(-> 'a 'b)" ) == "(-> int (-> 'a bool))" );
-    assert( apply( s, "(-> (-> 'b 'c) 'a 'a)" ) == "(-> (-> (-> 'a bool) 'c) int int)" );
-    assert( apply( {}, "(-> 'x 'y)" ) == "(-> 'x 'y)" );
+    assert( substitute( s, "'a" ) == "int" );
+    assert( substitute( s, "'c" ) == "'c" );
+    assert( substitute( s, "bool" ) == "bool" );
+    assert( substitute( s, "(-> 'a 'b)" ) == "(-> int (-> 'a bool))" );
+    assert( substitute( s, "(-> (-> 'b 'c) 'a 'a)" ) == "(-> (-> (-> 'a bool) 'c) int int)" );
+    assert( substitute( {}, "(-> 'x 'y)" ) == "(-> 'x 'y)" );
 
     assert( occurs( "'a", "'a" ) );
     assert( !occurs( "'a", "'b" ) );
