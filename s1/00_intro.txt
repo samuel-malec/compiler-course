@@ -1,0 +1,21 @@
+# S.1 Assignment Set 1
+
+The first assignment set covers block 1: lexical analysis, parsing,
+syntax trees and evaluation. Each assignment combines several of
+those topics; none of them can be solved by copying a single
+exercise. Please read ‹00/a3_sets.txt› before you start.
+
+ 1. ‹a_regex›    – a regular expression engine with guaranteed
+                   linear-time matching (Thompson's construction)
+ 2. ‹b_ll1›      – an LL(1) parser generator: FIRST and FOLLOW sets,
+                   conflict detection and a table-driven parser
+ 3. ‹c_query›    – a small SQL-like query language over in-memory
+                   tables
+ 4. ‹d_template› – a template engine (in the style of Jinja or
+                   Mustache) with conditionals, loops and filters
+
+The assignments are independent of each other and can be done in
+any order, although the order above roughly follows the chapters.
+As usual, the tests in each file are only «sanity» tests – your
+implementation must follow the specification in full, so write
+more tests of your own.

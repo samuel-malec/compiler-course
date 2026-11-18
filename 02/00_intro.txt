@@ -1,0 +1,126 @@
+# Grammars and Recursive Descent
+
+The lexer turns text into a flat sequence of tokens. But programs
+are not flat: ‹1 + 2 * 3› is a sum whose right operand is a product,
+an ‹if› expression contains a condition and two branches, which can
+contain further ‹if› expressions, and so on. The job of the «parser»
+is to recover this nested structure. To do that, we first need a
+precise description of what the structure is – a «grammar».
+
+### Context-Free Grammars
+
+A «context-free grammar» consists of:
+
+ • a set of «terminal» symbols – the tokens,
+ • a set of «nonterminal» symbols – names for syntactic categories
+   like ‹expr› or ‹statement›,
+ • a set of «rules» (or «productions»), each of the form
+   ⟦A → X₁ X₂ … Xₙ⟧, where ⟦A⟧ is a nonterminal and each ⟦Xᵢ⟧ is
+   either a terminal or a nonterminal (⟦n⟧ can be 0, in which case
+   we write ⟦A → ε⟧),
+ • a «start» nonterminal.
+
+A rule says ‘an ⟦A⟧ can be made of an ⟦X₁⟧, followed by an ⟦X₂⟧, …’.
+A sequence of tokens is in the language of the grammar if it can be
+«derived» from the start symbol by repeatedly replacing a
+nonterminal with the right-hand side of one of its rules. The
+derivation can be drawn as a «parse tree» (or «concrete syntax
+tree»): the root is the start symbol, each inner node is a
+nonterminal with its children given by the rule that was used, and
+the leaves, read left to right, are the input tokens.
+
+In this course, we will usually write grammars in «EBNF» (extended
+Backus-Naur form), which adds a few convenient shorthands: ‹|›
+separates alternatives, ‹{ x }› means zero or more repetitions of
+‹x›, ‹[ x ]› means that ‹x› is optional, ‹( … )› groups, and
+terminals are written in quotes. For example:
+
+    expr   = term, { ( '+' | '-' ), term } ;
+    term   = factor, { ( '*' | '/' ), factor } ;
+    factor = number | '(', expr, ')' ;
+
+### Ambiguity, Precedence and Associativity
+
+Consider the much simpler grammar ‹e = e, '-', e | number ;›. It
+describes the same strings as the one above (restricted to ‹-›), but
+the input ‹5 - 3 - 1› has two different parse trees: ‹(5 - 3) - 1›
+and ‹5 - (3 - 1)›, with different values. Such a grammar is
+«ambiguous», and it is useless for a parser: the tree is the whole
+point.
+
+The usual cure is to «stratify» the grammar: give each «precedence
+level» its own nonterminal, like ‹expr› (for ‹+› and ‹-›) and
+‹term› (for ‹*› and ‹/›) above. An ‹expr› is a sequence of ‹term›s
+separated by ‹+› or ‹-›, so a ‹+› can never end up «inside» a
+‹term› unless it is in parentheses. «Associativity» decides how to
+group a sequence of operators on the same level: ‹-› is
+«left-associative» (‹5 - 3 - 1 = (5 - 3) - 1›), while for example
+exponentiation is usually «right-associative» (‹2 ^ 3 ^ 2 = 2 ^ (3
+^ 2)›). Some operators are «non-associative»: in many languages,
+‹a < b < c› is simply a syntax error.
+
+### Recursive Descent
+
+A «recursive descent» parser is the most direct translation of a
+grammar into code, and it is what most production compilers (gcc,
+clang, rustc, Go, V8, …) actually use. The recipe:
+
+ • each nonterminal becomes a function, which parses that construct
+   at the current position and advances past it,
+ • a sequence ‹a, b› becomes two consecutive calls (or token checks),
+ • an alternative ‹a | b› becomes an ‹if›, which decides which
+   branch to take by looking at the next token (the «lookahead»),
+ • a repetition ‹{ a }› becomes a ‹while› loop, and an option ‹[ a ]›
+   an ‹if›, again guided by the lookahead.
+
+For this to work, the parser must always be able to decide which
+alternative to take by looking at the next token. The set of tokens
+which can start a given alternative is called its «FIRST set», and
+a grammar where the FIRST sets of the alternatives of each rule are
+disjoint (plus a condition about ‹ε› rules, see ‹p4_first›) is
+called «LL(1)». The other thing that breaks recursive descent is
+«left recursion»: a rule like ‹e = e, '-', t | t ;› would translate
+into a function whose first action is to call itself, forever. Left
+recursion can always be removed from the grammar (see ‹p5_leftrec›),
+or, in EBNF, simply replaced by a repetition, which is also how we
+get left associativity: the loop builds the tree from the left.
+
+### Pratt Parsing
+
+With many precedence levels, the stratified grammar gets tedious:
+one function per level, each nearly identical to the next. «Pratt
+parsing» (also called «precedence climbing») replaces all of them
+with a single function, ‹expr( min_bp )›, driven by a table of
+«binding powers». It is shown in ‹d2_pratt›, and it is worth
+understanding well – it is the standard technique for expressions
+in hand-written parsers.
+
+### This Chapter
+
+Demos:
+
+ 1. ‹descent›     – a recursive descent parser for ‹tiny› expressions
+ 2. ‹pratt›       – the same, using binding powers
+ 3. ‹combinators› – parsers as values, built from smaller parsers
+
+Elementary exercises:
+
+ 1. ‹balanced›    – check that brackets are balanced
+ 2. ‹list›        – parse a list of integers
+ 3. ‹depth›       – validate an S-expression and find its depth
+
+Preparatory exercises:
+
+ 1. ‹calc›        – a calculator with 4 precedence levels
+ 2. ‹rpn›         – translate infix expressions to postfix
+ 3. ‹json›        – validate JSON documents
+ 4. ‹first›       – compute FIRST sets of a grammar
+ 5. ‹leftrec›     – remove immediate left recursion from a grammar
+ 6. ‹chain›       – boolean operators and chained comparisons
+
+Regular exercises:
+
+ 1. ‹taut›        – parse propositional formulas, check tautologies
+ 2. ‹regex›       – parse and match regular expressions
+ 3. ‹ebnf›        – parse EBNF grammars (like the ones above)
+ 4. ‹postfix›     – calls, indexing and member access

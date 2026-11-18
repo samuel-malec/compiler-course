@@ -1,0 +1,41 @@
+## Assignment Sets
+
+Each block comes with a set of 4 assignments (directories ‹s1›, ‹s2›
+and ‹s3›). An assignment is considerably more extensive than a
+weekly exercise – typically a few hundred lines – and its
+specification is more open: you will need to design the data
+structures and decompose the problem yourself.
+
+As with exercises, each assignment is a single source file with the
+specification at the top and sanity tests in ‹main›. Unlike with
+exercises, the tests are deliberately «incomplete»: they check the
+interface and some basic behaviour, but a solution that passes them
+can still be quite wrong. Part of the work is to write your own
+tests, based on a careful reading of the specification.
+
+The recommended schedule is to start the assignment set in the
+first week of its block and finish it by the end of the block, i.e.
+roughly 4 weeks per set:
+
+│ set │ block │ chapters │ start with │ finish by │
+├─────│───────│──────────│────────────│───────────│
+│  s1 │   1   │  1 – 4   │  chapter 1 │ chapter 5 │
+│  s2 │   2   │  5 – 8   │  chapter 5 │ chapter 9 │
+│  s3 │   3   │  9 – 12  │  chapter 9 │ the end   │
+
+### Code Quality
+
+Since nobody is going to grade your code, it is up to you to keep
+it in good shape. When you finish an assignment, put it away for a
+few days, then read it again and ask yourself:
+
+ • Is it obvious from the names of functions and types what they
+   do? Could somebody else find their way around the code?
+ • Is there duplicated logic that should be a function?
+ • Are the data structures a good fit for the problem, or are you
+   fighting them?
+ • Are errors handled in one consistent way?
+ • Would the code survive a small change in the specification
+   (another operator, another kind of token)?
+
+Then compare with the reference solution in ‹sol/sN›.

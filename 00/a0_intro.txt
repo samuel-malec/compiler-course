@@ -1,0 +1,36 @@
+# A. Rules and organisation
+
+This document is a collection of exercises and commented source
+code (demos) which together make up a course on «interpreters and
+compilers», written in C++. Each chapter corresponds to a single
+week of study. Every week, you will read the chapter introduction
+and the demos, then solve a batch of exercises.¹
+
+The course assumes that you are comfortable with C++20 at the level
+of PB161 and that you have at least seen the generic programming
+material from PV264 (‹auto› parameters, ‹std::variant›,
+‹std::optional›, lambdas). It does «not» assume any prior knowledge
+of formal languages or compilers – everything that is needed will be
+introduced along the way.
+
+The «source bundle» is split into these directories:
+
+ • ‹00› – rules, organisation and technical information (this
+   chapter),
+ • ‹01› through ‹12› – one directory per chapter (= week),
+ • ‹s1› through ‹s3› – assignment sets (one per block),
+ • ‹sol› – reference solutions, with the same layout as above
+   (e.g. ‹sol/01/e1_words.cpp›).
+
+The remaining files in this chapter describe how the course is
+organised and how to work with the exercises. Please read them
+before you start on chapter 1.
+
+«Current status:» block 1 (chapters ‹01› to ‹04›) and the assignment
+set ‹s1› are complete, including reference solutions. Blocks 2 and 3
+(chapters ‹05› to ‹12›, sets ‹s2› and ‹s3›) are outlined in
+‹a1_overview.txt› and will be added later.
+
+¹ This is a self-study course. There are no hard deadlines, but the
+  material is designed to be done at a pace of one chapter per week.
+  Please read the note on pacing in ‹a1_overview.txt›.

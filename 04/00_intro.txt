@@ -1,0 +1,120 @@
+# Tree-Walking Evaluation
+
+We can now turn text into trees. In this chapter, we will finally
+make the trees «do» something: we will write «interpreters», which
+compute the value of a program by walking its syntax tree. This is
+the simplest way to implement a programming language, and while it
+is not the fastest, it is used by many real languages (early
+versions of Ruby and JavaScript, most shell languages, many
+configuration and template languages), and it is always the
+reference against which a compiler can be checked.
+
+### Values and Environments
+
+An interpreter needs to distinguish two kinds of things which are
+easy to confuse: «expressions» – pieces of syntax, like the tree for
+‹1 + 2› – and «values» – the results of evaluation, like the number
+3. In ‹tiny›, values are integers, booleans and strings, and we
+represent them by a ‹std::variant› of the corresponding C++ types.
+Later on, we will add functions, lists and other kinds of values.
+
+To evaluate a variable, the interpreter needs to know its value. The
+mapping from variable names to values is called an «environment».
+In ‹let x = 1 in x + y›, the body ‹x + y› is evaluated in an
+environment which extends the outer environment (the one with ‹y›)
+by the binding ‹x ↦ 1›. Since environments are extended in a
+nested, stack-like fashion, a common representation is a «chain» of
+frames, each with a pointer to its parent (‹e2_env›).
+
+### Big-Step Semantics
+
+The meaning of a language can be described precisely by «inference
+rules». We write ⟦ρ ⊢ e ⇓ v⟧ for ‘in the environment ⟦ρ⟧, the
+expression ⟦e⟧ evaluates to the value ⟦v⟧’. The rules for a part of
+‹tiny› (the premises are above the line, the conclusion below):
+
+                                      ρ(x) = v
+    ─────────────── (num)          ───────────── (var)
+     ρ ⊢ n ⇓ n                       ρ ⊢ x ⇓ v
+
+     ρ ⊢ e₁ ⇓ n₁    ρ ⊢ e₂ ⇓ n₂
+    ───────────────────────────── (add)
+         ρ ⊢ e₁ + e₂ ⇓ n₁ + n₂
+
+     ρ ⊢ e₁ ⇓ v₁    ρ[x ↦ v₁] ⊢ e₂ ⇓ v₂
+    ─────────────────────────────────── (let)
+       ρ ⊢ let x = e₁ in e₂ ⇓ v₂
+
+     ρ ⊢ c ⇓ true    ρ ⊢ e₁ ⇓ v           ρ ⊢ c ⇓ false    ρ ⊢ e₂ ⇓ v
+    ──────────────────────────── (if₁)   ──────────────────────────── (if₂)
+     ρ ⊢ if c then e₁ else e₂ ⇓ v          ρ ⊢ if c then e₁ else e₂ ⇓ v
+
+This style is called «big-step» (or «natural») semantics, because a
+single judgement goes all the way from an expression to its final
+value. The great thing about it is that it translates directly into
+a recursive interpreter: each rule is a case of the ‹eval› function,
+and each premise is a recursive call. Notice also what the rules do
+«not» say: there is no rule for ‹true + 1›, or for a variable which
+is not in ‹ρ›. Such programs simply have no value – in the
+interpreter, they are «run-time errors».
+
+There is also a «small-step» style, where a judgement ⟦e → e'⟧ says
+that ⟦e⟧ makes a single step of computation to ⟦e'⟧, like ‹(1 + 2)
+* 4 → 3 * 4›. A program is evaluated by repeating steps until it
+becomes a value. Small-step semantics is better at describing
+programs which do not terminate, or the order in which things
+happen (‹p3_steps›).
+
+### Evaluation Strategies
+
+The rule for ‹let› above evaluates the bound expression «first» –
+this is called «eager» (or «strict», or «call-by-value») evaluation,
+and it is what most languages do. An alternative is «lazy»
+evaluation: delay evaluating ‹e₁› until the value of ‹x› is actually
+needed (and then remember the result – ‘call-by-need’), as Haskell
+does (‹p2_lazy›). Even eager languages have a few lazy constructs:
+the branches of ‹if›, and the right operands of ‹and› and ‹or›
+(short-circuiting).
+
+### Recursion and the C++ Stack
+
+A tree-walking interpreter uses the C++ call stack to remember where
+it is in the tree. This is elegant, but it means that a deeply
+nested program can crash the interpreter with a stack overflow. One
+way out is to manage the stack «explicitly» (‹p4_stack›) – which
+turns out to be the first step towards the virtual machines of
+block 3.
+
+### This Chapter
+
+This is the last chapter of block 1, and its demo ‹d2_tiny› puts
+everything together: a complete interpreter for ‹tiny›, from text to
+value.
+
+Demos:
+
+ 1. ‹eval›    – values, environments and run-time errors
+ 2. ‹tiny›    – the complete ‹tiny› interpreter (block review)
+
+Elementary exercises:
+
+ 1. ‹rpn›     – evaluate an expression in postfix notation
+ 2. ‹env›     – a chained environment with shadowing
+ 3. ‹eval›    – evaluate the AST from Chapter 3
+
+Preparatory exercises (all of them use S-expression syntax, so that
+you don't need to write a parser):
+
+ 1. ‹dyn›     – dynamic typing: integers, booleans and strings
+ 2. ‹lazy›    – lazy ‹let› (call-by-need)
+ 3. ‹steps›   – small-step reduction sequences
+ 4. ‹stack›   – evaluation with an explicit stack (no recursion)
+ 5. ‹desugar› – derived forms (‹cond›, ‹let*›, n-ary ‹and›)
+ 6. ‹errors›  – run-time errors with source positions
+
+Regular exercises:
+
+ 1. ‹while›   – mutable variables and loops
+ 2. ‹lists›   – immutable lists as values
+ 3. ‹sheet›   – a spreadsheet: formulas, dependencies and cycles
+ 4. ‹regs›    – a register machine with jumps and a step limit

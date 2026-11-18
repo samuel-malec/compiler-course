@@ -1,0 +1,114 @@
+# Abstract Syntax Trees
+
+The parsers in the previous chapter produced strings – S-expressions
+which made the structure of the input visible. That was good enough
+to check that the parser works, but useless for anything else: to
+evaluate, type-check or compile a program, we need its structure in
+a form that the rest of the implementation can «work with». That
+form is the «abstract syntax tree» (AST).
+
+### Concrete and Abstract Syntax
+
+A parse tree (Chapter 2) records everything about how the input was
+derived from the grammar: every nonterminal, every parenthesis,
+every keyword. Most of that is irrelevant once parsing is done.
+After the parser has used the parentheses in ‹(1 + 2) * 3› to decide
+the shape of the tree, the parentheses themselves carry no
+information – the tree «is» the grouping. Likewise, nobody needs to
+know that ‹2› was derived via ‹expr → sum → prod → unary → atom›.
+
+The abstract syntax keeps only what matters for the meaning: a
+multiplication node with two children, one of which is an addition
+node with two number leaves. The «abstract» grammar is usually much
+simpler than the concrete one (no precedence levels, no
+parentheses), and it is often ambiguous – which does not matter,
+because nobody parses it: trees are built by the parser directly.
+
+    concrete:  (1 + 2) * 3        abstract:      *
+                                                / \
+                                               +   3
+                                              / \
+                                             1   2
+
+### Representing Trees in C++
+
+There are two main ways to represent a tree whose nodes come in
+several different kinds:
+
+ 1. A «class hierarchy»: an abstract base class ‹node›, with a
+    derived class for each kind (‹number›, ‹binary›, ‹let›, …).
+    Operations on the tree are either virtual methods, or they are
+    implemented using the «visitor» pattern. This is the classic
+    object-oriented approach (‹d1_hierarchy›).
+ 2. A «sum type»: ‹std::variant< number, binary, let, … >›, with
+    operations implemented as functions which ‹std::visit› the
+    variant. This is the approach of functional languages, where
+    such ‘algebraic data types’ are built in (‹d2_variant›).
+
+The two approaches have opposite strengths, a dilemma known as the
+«expression problem». With a class hierarchy, adding a new kind of
+node is easy (one new class), but adding a new operation means
+touching every class. With a variant, adding a new operation is easy
+(one new function), but adding a new kind of node means touching
+every operation. In a compiler, the set of node kinds is fairly
+stable, while new operations (passes) are added all the time – which
+is why we will mostly use variants.
+
+Since trees are recursive, the children must be held by pointer.
+‹std::unique_ptr› expresses that each node owns its children, and
+it is the default choice. If nodes are «immutable», they can also be
+safely «shared» between several trees, and ‹std::shared_ptr› (to a
+‹const› node) is convenient: transformations can build new trees
+which reuse unchanged sub-trees of the old one (‹d3_rewrite›).
+
+### Working With Trees
+
+Almost every operation on an AST is a recursive function with one
+case per kind of node. Some of the most common ones:
+
+ • «printing» – back to text, either as an S-expression (for
+   debugging) or as valid source code (‹p2_unparse›),
+ • «analyses» – computing information about the tree, like the set
+   of variables it uses (‹e2_vars›, ‹e3_free›),
+ • «transformations» – building a new tree from an old one, like
+   simplification (‹p3_simplify›) or substitution (‹p4_subst›).
+
+### Variables and Binding
+
+Our trees now contain ‹let›, which «binds» a variable: in ‹let x = 1
+in x + y›, the ‹x› in the body refers to the ‹let›, while ‹y› is
+«free» – it refers to something outside the expression. Many
+operations need to respect binding: a variable which is free in an
+expression can become bound if we carelessly paste the expression
+into the body of a ‹let› of the same name («variable capture»).
+Exercises ‹e3_free›, ‹p4_subst› and ‹r1_alpha› explore this.
+
+### This Chapter
+
+Demos:
+
+ 1. ‹hierarchy› – an AST as a class hierarchy, with a visitor
+ 2. ‹variant›   – an AST as a ‹std::variant›, with a parser
+ 3. ‹rewrite›   – immutable trees and tree transformations
+
+Elementary exercises:
+
+ 1. ‹size›      – count the nodes of a tree
+ 2. ‹vars›      – collect all variable names in a tree
+ 3. ‹free›      – collect the «free» variables of a tree
+
+Preparatory exercises:
+
+ 1. ‹build›     – a parser which builds an AST
+ 2. ‹unparse›   – print an AST with as few parentheses as possible
+ 3. ‹simplify›  – algebraic simplification
+ 4. ‹subst›     – capture-avoiding substitution
+ 5. ‹share›     – find identical sub-trees and share them (a DAG)
+ 6. ‹fold›      – a generic fold over trees
+
+Regular exercises:
+
+ 1. ‹alpha›     – equivalence up to renaming of bound variables
+ 2. ‹json›      – parse JSON into a tree of values
+ 3. ‹rules›     – rewriting with user-supplied rules (patterns)
+ 4. ‹pretty›    – a pretty printer which respects a line width

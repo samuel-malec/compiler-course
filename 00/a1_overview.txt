@@ -1,0 +1,74 @@
+## Overview
+
+Most programmers spend their whole careers on the far side of a
+compiler: they write text, something turns it into a running
+program, and the details of that ‘something’ remain a mystery. The
+goal of this course is to remove the mystery. By the end of the
+semester, you will have written (in small, testable pieces) every
+major part of a language implementation: a lexer, a parser, a
+tree-walking interpreter, a static type checker, a bytecode compiler
+with a virtual machine, a simple optimiser and a garbage collector.
+
+The course is, first and foremost, a «programming» course. The
+theory (grammars, semantics, data-flow analysis) is there to make
+the programs possible, not the other way around. Each chapter
+explains just enough of it to get you going and then asks you to
+write code – a lot of code. It is important that you program as
+much and as often as possible, ideally every day, but at least a few
+times each week.
+
+### Topics
+
+The course is split into 3 blocks. Each block contains 4 chapters
+and ends with a review chapter. Each block also comes with an
+assignment set, which is considerably more extensive than the weekly
+exercises.
+
+│ bl. │     │ topic                                  │
+├─────│────▻┼◅───────────────────────────────────────│
+│  1  │  1. │ lexical analysis (scanners, tokens)    │
+│     │  2. │ grammars and recursive descent         │
+│     │  3. │ abstract syntax trees                  │
+│     │  4. │ tree-walking evaluation, block review  │
+│┄┄┄┄┄│┄┄┄┄┄│┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│
+│  2  │  5. │ statements, scopes and environments    │
+│     │  6. │ functions, closures and recursion      │
+│     │  7. │ static types and type checking         │
+│     │  8. │ type inference, block review           │
+│┄┄┄┄┄│┄┄┄┄┄│┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄│
+│  3  │  9. │ stack machines and bytecode            │
+│     │ 10. │ compiling control flow and calls       │
+│     │ 11. │ intermediate representation, analyses  │
+│     │ 12. │ memory management, course review       │
+
+### The Running Example
+
+Most exercises are standalone – each file defines its own little
+language, so that you can solve it without having solved anything
+else. However, the demos in each chapter gradually build up a
+single language called «tiny», and the assignment sets reuse it as
+well. By the end of block 1, tiny has integers, booleans, strings,
+‹let› bindings and conditionals; by the end of block 2, it has
+statements, first-class functions and a static type system; and in
+block 3, it is compiled to bytecode instead of being interpreted.
+
+### Pacing
+
+There are no deadlines, but the material is written for a pace of
+one chapter per week, with the assignment set of each block spread
+over the 4 weeks of that block. A sensible weekly routine looks like
+this:
+
+ 1. read ‹00_intro.txt› and all the demos in the chapter, and run
+    them (‹make demo›),
+ 2. solve the elementary exercises (‹e*›) and compare your
+    solutions with the reference ones in ‹sol›,
+ 3. solve at least 4 of the 6 preparatory exercises (‹p*›) «without
+    looking at the reference solutions»,
+ 4. work through the regular exercises (‹r*›), which are somewhat
+    harder and often combine ideas from the whole chapter,
+ 5. put in a couple of hours on the current assignment set.
+
+If you get stuck on an exercise for more than an hour, move on to
+the next one and come back to it later. The worst thing you can do
+is to fall behind and then try to cram 4 chapters into one weekend.

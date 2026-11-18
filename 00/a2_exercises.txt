@@ -1,0 +1,72 @@
+## Exercises
+
+Each chapter directory contains a number of source files. The first
+letter of the file name tells you what kind of file it is:
+
+ • ‹d?_*.cpp› – «demos»: complete, thoroughly commented programs
+   which introduce the new concepts of the chapter; read them
+   carefully, run them, change them and see what breaks,
+ • ‹e?_*.cpp› – «elementary» exercises: very small and quick to
+   solve (single-digit to low double-digit number of lines), meant
+   to check that you understood the demos,
+ • ‹p?_*.cpp› – «preparatory» exercises: the core of the weekly
+   work; these are the ones you should be solving on your own,
+ • ‹r?_*.cpp› – «regular» exercises: somewhat more involved,
+   usually combining several ideas; they are a good preparation for
+   the assignment sets.
+
+Every exercise is a single file. The comment at the top is the
+specification (always read all of it, including footnotes), the
+function ‹main› at the bottom contains the tests. Usually, there is
+also a commented-out declaration of what you are expected to write:
+
+    // std::vector< std::string > words( std::string_view );
+
+The ellipsis (‹…›) in such a declaration means that it is up to you
+to decide what goes there (a type, an extra argument, a whole class).
+Write your solution between the specification and ‹main›. Unless the
+exercise says otherwise, you may add any number of helper functions
+and classes, and you may include any header from the standard
+library.
+
+### Building and Testing
+
+Each directory has a ‹makefile›. To build and test a single
+exercise, run (in the directory of the chapter):
+
+    $ make p1_munch
+
+This compiles the file, then runs it under ‹valgrind›.¹ If all the
+assertions in ‹main› pass and there are no memory errors, you will
+see the word ‹ok›. Running ‹make› without arguments tries to build
+everything in the directory; use ‹make -k› to keep going past
+failures. The targets ‹make demo›, ‹make elem›, ‹make prep› and
+‹make reg› build only the given kind of file.
+
+The tests in ‹main› are «sanity» tests – they check that your
+solution behaves reasonably on simple inputs. They are not
+exhaustive. You are encouraged to add more tests of your own,
+especially for edge cases that the specification mentions but the
+tests do not exercise.
+
+### Reference Solutions
+
+Reference solutions for «all» exercises are in ‹sol/NN›, with the
+same file names. Each solution file contains the full exercise
+(specification and tests) with the solution filled in, and the
+‹sol› directories have makefiles too, so you can check that they
+pass. Please use them responsibly:
+
+ • for ‹e› exercises, compare your solution with the reference one
+   after you have finished,
+ • for ‹p› exercises, do not look at the solution until you have
+   either solved the exercise or spent at least an hour on it,
+ • for ‹r› exercises, try first, but don't despair if you need to
+   peek – they are harder on purpose.
+
+There is usually more than one good solution. The reference ones
+try to be clear rather than clever, but they are not the only
+correct answers.
+
+¹ If ‹valgrind› is not installed, the tests run directly and the
+  result reads ‹ok (without valgrind)›. See ‹t1_tools.txt›.

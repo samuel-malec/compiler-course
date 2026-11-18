@@ -1,0 +1,141 @@
+# Lexical Analysis
+
+Before we start, a quick reminder: if you haven't read Chapter A
+(directory ‹00› in the source bundle) yet, please do so now.
+
+A program, as far as the computer is concerned, starts its life as
+a sequence of characters. Humans don't read programs that way: we
+see «words» – the keyword ‹while›, the name ‹counter›, the number
+‹42›, the operator ‹<=› – and we only care about individual
+characters while we are reading a single word. The first phase of
+every language implementation does the same thing: it groups
+characters into words, which are called «tokens», and throws away
+everything which is not important for the meaning of the program,
+like whitespace and comments. This phase is called «lexical
+analysis», and the program (or function) which does it is called a
+«lexer», «scanner» or «tokenizer».
+
+### Tokens and Lexemes
+
+A token is usually a pair: a «kind» (also «token type» or
+«category») and the «lexeme» – the piece of the input text that the
+token was made from. For example, the input ‹x <= 42› is made of
+these 3 tokens:
+
+│ kind       │ lexeme │
+├────────────│◅───────│
+│ identifier │ ‹x›    │
+│ less-equal │ ‹<=›   │
+│ integer    │ ‹42›   │
+
+Some token kinds have exactly one possible lexeme (‹<=›, or the
+keyword ‹while›), and for those, the lexeme does not carry any
+information – the kind is enough. For others (identifiers, numbers,
+strings), the lexeme is essential. Quite often, the lexer also
+«decodes» the lexeme into a more useful value: the integer literal
+‹0x2a› becomes the number 42, the string literal ‹"a\tb"› becomes a
+string with a real tab character in it, and so on.
+
+Most real lexers also record the «position» of each token (an
+offset, or a line and column). Positions are useless for the
+meaning of the program, but crucial for error messages – nobody
+likes ‘syntax error’ without a line number.
+
+### How Tokens Are Described
+
+The set of valid lexemes for each token kind is nearly always a
+«regular language»: it can be described by a regular expression and
+recognised by a finite automaton. For instance, identifiers in C++
+are described by ‹[A-Za-z_][A-Za-z0-9_]*›. This is not a
+coincidence – regular languages are exactly the languages which can
+be recognised with a «fixed amount of memory» while reading the
+input once, left to right, which is what makes lexers fast. The
+consequence is also that lexers cannot do any ‘counting’: they
+cannot check that parentheses are balanced (that is the job of the
+parser, see Chapter 2).¹
+
+In this chapter, we will write lexers by hand. A hand-written lexer
+is basically a loop over the input, with a big ‹if› or ‹switch›
+which looks at the current character and decides which kind of
+token starts there. That decision is usually easy: a digit starts a
+number, a letter starts an identifier, a quote starts a string. In
+Exercise ‹r2_dfa›, you will also see the other approach: lexers
+driven by tables which describe finite automata, which is what lexer
+generators (‹lex›, ‹flex›, ‹re2c›) produce.
+
+### Maximal Munch
+
+When does a token end? The near-universal rule is called «maximal
+munch» (or the «longest match» rule): at each position, the lexer
+takes the «longest» prefix of the remaining input that forms a valid
+token. That is why ‹<=› is lexed as a single token and not as ‹<›
+followed by ‹=›, and why ‹counter› is a single identifier and not 7
+single-letter ones.
+
+Maximal munch is greedy: the lexer never reconsiders a decision
+once a token has been produced. Sometimes this gives surprising
+results. The classic one is from C: ‹x+++++y› is lexed as ‹x ++ ++
++ y›, which is not a valid expression, even though ‹x ++ + ++ y›
+would be. Before C++11, the same rule turned the closing brackets in
+‹vector<vector<int>>› into a single shift operator ‹>>›.²
+
+When two token kinds match the «same» longest prefix, the tie is
+broken by priority. The most important instance are keywords: the
+input ‹if› matches both the keyword and the identifier pattern, and
+the keyword wins. The usual way to implement this in a hand-written
+lexer is to lex an identifier first, and then look it up in a table
+of keywords.
+
+### Errors
+
+A lexer can fail in only a few ways: an unexpected character (‹$›
+in a language which does not use it), an unterminated string literal
+or comment, or a malformed literal (‹0x› with no digits). There are
+two common strategies for dealing with such errors:
+
+ 1. stop immediately (e.g. by throwing an exception or returning
+    ‹std::nullopt›), or
+ 2. emit a special «error token» and keep going, so that later
+    phases (or the user) learn about all the errors at once.
+
+Both are used in the exercises in this chapter – always read the
+specification to see which one is expected.
+
+### This Chapter
+
+Demos:
+
+ 1. ‹pipeline› – a complete calculator: lexer, parser and evaluator
+ 2. ‹scanner›  – a reusable lexer for the language ‹tiny›
+ 3. ‹errors›   – source positions and error messages
+
+Elementary exercises:
+
+ 1. ‹words›    – split a string into identifiers, numbers and symbols
+ 2. ‹intlit›   – integer literals in several bases, with separators
+ 3. ‹comments› – remove comments while respecting string literals
+
+Preparatory exercises:
+
+ 1. ‹munch›    – maximal munch over a given set of operators
+ 2. ‹strlit›   – decode string literals with escape sequences
+ 3. ‹lexer›    – a complete lexer for a small language
+ 4. ‹indent›   – Python-style ‹INDENT› and ‹DEDENT› tokens
+ 5. ‹float›    – floating-point literals (longest match with backtracking)
+ 6. ‹interp›   – string interpolation (a lexer with a mode stack)
+
+Regular exercises:
+
+ 1. ‹csv›      – a lexer for CSV files (quoted fields)
+ 2. ‹dfa›      – a table-driven lexer built from finite automata
+ 3. ‹glob›     – shell-style pattern matching (‹*›, ‹?›, ‹[a-z]›)
+ 4. ‹semi›     – automatic semicolon insertion, as in Go
+
+¹ In practice, lexers sometimes cheat and keep a little bit of extra
+  state (a counter, or a stack). You will see this in exercises
+  ‹indent› and ‹interp›.
+
+² C++11 added a special rule: inside a template argument list, ‹>>›
+  is split into two tokens. Notice that this rule is impossible to
+  implement in the lexer alone – it needs to know what the parser is
+  doing.

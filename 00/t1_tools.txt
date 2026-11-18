@@ -1,0 +1,52 @@
+## T.1 Technical Information
+
+The course uses C++23 as implemented by recent versions of ‹gcc›
+(version 13 or newer) or ‹clang› (version 17 or newer). Apart from
+the compiler, you will need ‹make› and, optionally but strongly
+recommended, ‹valgrind›.
+
+By default, the makefiles use the following settings:
+
+    CXX      = g++
+    VALGRIND = valgrind
+    CXXFLAGS = -std=c++23 -g -Wall -Wextra -Werror
+
+To change any of them, create a file called ‹local.mk› in the
+top-level directory of the bundle (next to ‹common.mk›). For
+example, to use ‹clang› and the address and undefined behaviour
+sanitizers instead of ‹valgrind›:
+
+    CXX      = clang++
+    VALGRIND =
+    CXXFLAGS = -std=c++23 -g -Wall -Wextra -Werror \
+               -fsanitize=address,undefined
+
+Some exercises need special compiler flags. Those are given in the
+source file itself, on a line of the form:
+
+    // cxxflags: -O2
+
+### Language and Library
+
+You can use the entire standard library. A few parts of it will be
+used over and over throughout the course, so make sure that you
+know them well (look them up on ‹cppreference.com› if not):
+
+ • ‹std::string_view› – the most convenient type for the input of a
+   lexer or a parser, since it can be cheaply sliced,
+ • ‹std::optional› and ‹std::expected› – for functions which can
+   fail (e.g. on malformed input),
+ • ‹std::variant› and ‹std::visit› – for representing tokens, syntax
+   trees and run-time values,
+ • ‹std::unique_ptr› and ‹std::shared_ptr› – for recursive data
+   structures (trees),
+ • ‹std::map› and ‹std::unordered_map› – for symbol tables and
+   environments.
+
+### Assertions
+
+The tests use ‹assert› from ‹<cassert>›. You will often see double
+parentheses, as in ‹assert(( a == std::vector{ 1, 2 } ))›. Those are
+needed because ‹assert› is a macro, and the preprocessor does not
+know about braces – a comma inside ‹{ … }› would otherwise be taken
+as a separator of macro arguments.
