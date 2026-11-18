@@ -12,7 +12,7 @@ The course is split into 3 blocks. Each block contains 4 chapters
 and ends with a review chapter. Each block also comes with an
 assignment set, which is considerably more extensive than the weekly
 exercises.
-
+```
 │ bl. │     │ topic                                  │
 ├─────│────▻┼◅───────────────────────────────────────│
 │  1  │  1. │ lexical analysis (scanners, tokens)    │
@@ -29,3 +29,4 @@ exercises.
 │     │ 10. │ compiling control flow and calls       │
 │     │ 11. │ intermediate representation, analyses  │
 │     │ 12. │ memory management, course review       │
+```
